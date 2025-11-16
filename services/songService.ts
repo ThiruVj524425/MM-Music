@@ -1,5 +1,5 @@
 // services/songService.ts
-import { Paths, File } from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import { CustomAPIResponse, Song } from '../types';
 import { API_CONFIG, getApiUrl } from './apiConfig';
@@ -159,45 +159,70 @@ export const downloadSong = async (song: Song): Promise<void> => {
     // Create a safe filename
     const fileName = `${song.title.replace(/[^a-z0-9]/gi, '_')}_${song.artist.replace(/[^a-z0-9]/gi, '_')}.mp3`;
 
-    // Create file in document directory
-    const file = new File(Paths.document, fileName);
-    const fileUri = file.uri;
+    // Create file in cache directory using new File API
+    const file = new File(Paths.cache, fileName);
 
-    console.log(`Downloading to: ${fileUri}`);
+    console.log(`Downloading to: ${file.uri}`);
 
-    // Download the file using fetch and write to file
+    // Download the file using fetch with base64 encoding for React Native compatibility
     const response = await fetch(song.previewUrl);
     if (!response.ok) {
-      throw new Error(`Download failed: ${response.statusText}`);
+      throw new Error(`Download failed with status: ${response.status}`);
     }
 
+    console.log('Download response received, converting to base64...');
+
+    // Convert response to blob, then to base64
     const blob = await response.blob();
-    const arrayBuffer = await blob.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
 
-    // Write the file
-    await file.create();
-    const stream = await file.writableStream();
-    const writer = stream.getWriter();
-    await writer.write(uint8Array);
-    await writer.close();
+    // Convert blob to base64 using FileReader
+    const base64Data = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        // Remove the data URL prefix (e.g., "data:audio/mpeg;base64,")
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
 
-    console.log(`File downloaded to: ${fileUri}`);
+    console.log('Writing base64 data to file...');
 
-    // Save to media library (Music folder)
-    const asset = await MediaLibrary.createAssetAsync(fileUri);
-    console.log(`Saved to media library: ${asset.uri}`);
-
-    // Optionally create/get an album and add the asset to it
-    const album = await MediaLibrary.getAlbumAsync('Downloaded Music');
-    if (album) {
-      await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
-    } else {
-      await MediaLibrary.createAlbumAsync('Downloaded Music', asset, false);
+    // Try to delete the file if it exists (ignore error if it doesn't)
+    try {
+      await file.delete();
+      console.log('Deleted existing file');
+    } catch (error) {
+      // File doesn't exist, which is fine
+      console.log('No existing file to delete');
     }
+
+    // Write the base64 data to file
+    await file.create();
+    await file.write(base64Data, { encoding: 'base64' });
+
+    console.log(`File downloaded to: ${file.uri}`);
+
+    // Save to media library
+    const asset = await MediaLibrary.createAssetAsync(file.uri);
+    console.log(`Saved to media library: ${asset.uri}`);
+    console.log(`Asset media type: ${asset.mediaType}`);
 
     console.log(`Successfully downloaded: ${song.title}`);
-    console.log(`File saved to Music/Downloaded Music folder`);
+    console.log(`File saved to device music library`);
+
+    // Note: Album creation for audio files is not fully supported on all Android versions
+    // The file is already saved to the Music folder and accessible via any music player
+
+    // Clean up the cache file after saving to media library
+    try {
+      await file.delete();
+      console.log(`Cleaned up cache file: ${file.uri}`);
+    } catch (cleanupError) {
+      console.warn('Failed to cleanup cache file:', cleanupError);
+    }
 
   } catch (error) {
     console.error('Error downloading song:', error);

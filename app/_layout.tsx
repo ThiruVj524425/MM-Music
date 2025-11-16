@@ -1,3 +1,4 @@
+import { DownloadProvider } from '@/context/DownloadContext';
 import { AppNavigator } from '@/navigation/AppNavigator';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { StatusBar } from 'expo-status-bar';
@@ -7,8 +8,10 @@ import 'react-native-reanimated';
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <AppNavigator />
-      <StatusBar style="auto" />
+      <DownloadProvider>
+        <AppNavigator />
+        <StatusBar style="auto" />
+      </DownloadProvider>
     </ThemeProvider>
   );
 }

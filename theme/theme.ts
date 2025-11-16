@@ -10,6 +10,7 @@ export interface Theme {
     error: string;
     success: string;
     notification: string;
+    warning: string;
   };
 }
 
@@ -25,6 +26,7 @@ export const lightTheme: Theme = {
     error: '#FF3B30',
     success: '#34C759',
     notification: '#FF9500',
+    warning: '#FFA500',
   },
 };
 
@@ -40,5 +42,6 @@ export const darkTheme: Theme = {
     error: '#FF453A',
     success: '#32D74B',
     notification: '#FF9F0A',
+    warning: '#FF9F0A',
   },
 };

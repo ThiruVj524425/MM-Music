@@ -1,4 +1,5 @@
 import { Button } from '@/components/Button';
+import { PermissionBanner } from '@/components/PermissionBanner';
 import { useDownload } from '@/hooks/useDownload';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -19,7 +20,7 @@ export const SongDetailsScreen: React.FC<SongDetailsScreenProps> = ({ navigation
   const { song } = route.params;
   const { theme ,isDark} = useTheme();
   const { downloadSongById, getDownloadStatus } = useDownload();
-  const { hasPermission, requestPermission, isLoading: permissionsLoading } = usePermissions();
+  const { hasPermission, requestPermission, permissionStatus, isLoading: permissionsLoading } = usePermissions();
 
   const downloadStatus = getDownloadStatus(song.id);
 
@@ -105,6 +106,15 @@ export const SongDetailsScreen: React.FC<SongDetailsScreenProps> = ({ navigation
           <Text style={[styles.title, { color: theme.colors.text }]}>{song.title}</Text>
           <Text style={[styles.artist, { color: theme.colors.textSecondary }]}>{song.artist}</Text>
 
+          {!hasPermission && !permissionsLoading && (
+            <View style={styles.bannerContainer}>
+              <PermissionBanner
+                onRequestPermission={requestPermission}
+                permissionStatus={permissionStatus}
+              />
+            </View>
+          )}
+
           <View style={[styles.detailsContainer, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <DetailRow key="album" label="Album" value={song.album} theme={theme} />
             <DetailRow key="genre" label="Genre" value={song.genre} theme={theme} />
@@ -164,6 +174,10 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     alignItems: 'center',
+  },
+  bannerContainer: {
+    width: '100%',
+    marginTop: 16,
   },
   artwork: {
     width: 250,

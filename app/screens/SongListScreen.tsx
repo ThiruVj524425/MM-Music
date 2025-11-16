@@ -4,6 +4,7 @@ import MoonIcon from '@/assets/MoonIcon';
 import SunIcon from '@/assets/SunIcon';
 import { ErrorView } from '@/components/ErrorView';
 import { Loading } from '@/components/Loading';
+import { PermissionBanner } from '@/components/PermissionBanner';
 import { SongListItem, ViewMode } from '@/components/SongListItem';
 import { useDownload } from '@/hooks/useDownload';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -23,7 +24,7 @@ interface SongListScreenProps {
 export const SongListScreen: React.FC<SongListScreenProps> = ({ navigation }) => {
   const { theme, isDark, toggleTheme } = useTheme();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const { hasPermission, requestPermission, isLoading: permissionsLoading } = usePermissions();
+  const { hasPermission, requestPermission, permissionStatus, isLoading: permissionsLoading } = usePermissions();
 
   // Fetches songs from custom API with pagination
   const {
@@ -130,6 +131,13 @@ export const SongListScreen: React.FC<SongListScreenProps> = ({ navigation }) =>
           </TouchableOpacity>
         </View>
       </View>
+
+      {!hasPermission && !permissionsLoading && (
+        <PermissionBanner
+          onRequestPermission={requestPermission}
+          permissionStatus={permissionStatus}
+        />
+      )}
 
       <FlatList
         data={songs}
